@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YT2n8n - YouTube Transcript Fetcher</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>YT2n8n</h1>
+            <p>YouTube 逐字稿擷取與自動化工具</p>
+        </header>
+
+        <main>
+            <div class="input-group">
+                <input type="text" id="urlInput" placeholder="貼上 YouTube 影片網址..." autocomplete="off">
+                <button id="submitBtn">開始處理</button>
+            </div>
+
+            <div id="statusArea" class="status-area hidden">
+                <div class="loader hidden"></div>
+                <div id="statusText">準備就緒</div>
+                <div id="resultDetails" class="hidden">
+                    <p><strong>標題:</strong> <span id="videoTitle">-</span></p>
+                    <p><strong>語言:</strong> <span id="videoLang">-</span></p>
+                    <p><strong>區塊數:</strong> <span id="chunkCount">-</span></p>
+                    <div class="success-badge">已發送至 n8n</div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by Vibe Coding</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
