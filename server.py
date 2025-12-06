@@ -28,6 +28,14 @@ async def process_video_endpoint(request: VideoRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.post("/api/qrcode")
+async def qrcode_endpoint(request: VideoRequest):
+    try:
+        result = run.process_qr(request.url)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 # Serve static files (Frontend)
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 

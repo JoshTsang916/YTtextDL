@@ -42,6 +42,7 @@ h1 {
     font-weight: 700;
     background: linear-gradient(135deg, #60a5fa, #a78bfa);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0.5rem;
 }
@@ -155,11 +156,40 @@ button:disabled {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .error-msg {
     color: var(--error);
     font-weight: 600;
+}
+
+.secondary-btn {
+    background-color: var(--card-bg);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+}
+
+.secondary-btn:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.qr-container {
+    display: flex;
+    justify-content: center;
+    margin: 1rem 0;
+    background: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.qr-container img {
+    max-width: 200px;
+    height: auto;
 }

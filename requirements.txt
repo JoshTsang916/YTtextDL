@@ -1,6 +1,9 @@
 yt-dlp
 youtube-transcript-api
-requests
-python-dotenv
 fastapi
+uvicorn
+python-dotenv
+requests
+qrcode
+pillow
 uvicorn

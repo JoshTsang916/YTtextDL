@@ -18,16 +18,27 @@
             <div class="input-group">
                 <input type="text" id="urlInput" placeholder="貼上 YouTube 影片網址..." autocomplete="off">
                 <button id="submitBtn">開始處理</button>
+                <button id="qrBtn" class="secondary-btn">生成 QR Code</button>
             </div>
 
             <div id="statusArea" class="status-area hidden">
                 <div class="loader hidden"></div>
                 <div id="statusText">準備就緒</div>
+                
+                <!-- Transcript Result -->
                 <div id="resultDetails" class="hidden">
                     <p><strong>標題:</strong> <span id="videoTitle">-</span></p>
                     <p><strong>語言:</strong> <span id="videoLang">-</span></p>
                     <p><strong>區塊數:</strong> <span id="chunkCount">-</span></p>
                     <div class="success-badge">已發送至 n8n</div>
+                </div>
+
+                <!-- QR Code Result -->
+                <div id="qrResult" class="hidden">
+                    <div class="qr-container">
+                        <img id="qrImage" src="" alt="QR Code">
+                    </div>
+                    <div class="success-badge">QR Code 已發送至 n8n</div>
                 </div>
             </div>
         </main>
