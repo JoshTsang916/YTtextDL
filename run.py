@@ -10,7 +10,6 @@ import io
 import base64
 from dotenv import load_dotenv
 from yt_dlp import YoutubeDL
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
 
 # Load environment variables
 load_dotenv()
@@ -106,32 +105,74 @@ def get_video_metadata(url):
     except Exception as e:
         raise Exception(f"無法獲取影片資訊: {str(e)}")
 
-def get_transcript(video_id):
+class SubItem:
+    def __init__(self, text):
+        self.text = text
+
+def get_transcript(url):
     """
-    Fetches transcript using youtube-transcript-api.
+    Fetches transcript using yt-dlp.
     Priority: zh-TW > zh-Hant > zh > en
     """
-    try:
-        api = YouTubeTranscriptApi()
-        transcript_list = api.list(video_id)
-        
-        # Try to find transcript in preferred languages
-        try:
-            transcript = transcript_list.find_transcript(['zh-TW', 'zh-Hant', 'zh'])
-            lang = transcript.language_code
-        except NoTranscriptFound:
-            try:
-                transcript = transcript_list.find_transcript(['en'])
-                lang = 'en'
-            except NoTranscriptFound:
-                raise Exception("[沒有字幕]")
-        
-        return transcript.fetch(), lang
+    ydl_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'skip_download': True,
+        'writesubtitles': True,
+        'writeautomaticsub': True,
+        'subtitleslangs': ['zh-TW', 'zh-Hant', 'zh', 'en'],
+        'subtitlesformat': 'json3',
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['web', 'default']
+            }
+        }
+    }
+    
+    # 載入 cookies 繞過機器人驗證
+    cookie_file = get_cookie_file()
+    if cookie_file:
+        ydl_opts['cookiefile'] = cookie_file
 
-    except TranscriptsDisabled:
-        raise Exception("[沒有字幕] (字幕功能已停用)")
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            
+            subs = info.get('requested_subtitles')
+            if not subs:
+                raise Exception("[沒有字幕] (找不到任何支援的語言或字幕已停用)")
+            
+            lang_to_use = None
+            for pref_lang in ['zh-TW', 'zh-Hant', 'zh', 'en']:
+                if pref_lang in subs:
+                    lang_to_use = pref_lang
+                    break
+            
+            if not lang_to_use:
+                lang_to_use = list(subs.keys())[0]
+                
+            sub_url = subs[lang_to_use].get('url')
+            if not sub_url:
+                raise Exception(f"[沒有字幕] (找到 {lang_to_use} 字幕但無下載連結)")
+                
+            resp = requests.get(sub_url, timeout=10)
+            resp.raise_for_status()
+            sub_data = resp.json()
+            
+            transcript_list = []
+            for event in sub_data.get('events', []):
+                if 'segs' in event:
+                    text_parts = [seg.get('utf8', '') for seg in event['segs']]
+                    full_text = "".join(text_parts).strip()
+                    if full_text and full_text != '\n':
+                        transcript_list.append(SubItem(full_text))
+            
+            if not transcript_list:
+                raise Exception("[沒有字幕] (字幕檔為空)")
+                
+            return transcript_list, lang_to_use
+
     except Exception as e:
-        # If it's already one of our custom exceptions, re-raise it
         if str(e).startswith("["):
             raise e
         raise Exception(f"獲取字幕失敗: {str(e)}")
@@ -210,7 +251,7 @@ def process_video(url):
     metadata = get_video_metadata(url)
     
     # 2. Transcript
-    transcript_data, lang = get_transcript(metadata['id'])
+    transcript_data, lang = get_transcript(url)
     
     # 3. Chunking
     chunks = chunk_transcript(transcript_data)

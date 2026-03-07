@@ -1,5 +1,4 @@
 yt-dlp
-youtube-transcript-api
 fastapi
 uvicorn
 python-dotenv
