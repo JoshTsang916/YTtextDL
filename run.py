@@ -15,15 +15,85 @@ from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, No
 # Load environment variables
 load_dotenv()
 
+import urllib.parse as urlparse
+
+def extract_video_id(url):
+    """從網址中抽出乾淨的 Video ID"""
+    parsed_url = urlparse.urlparse(url)
+    if parsed_url.hostname == 'youtu.be':
+        return parsed_url.path[1:]
+    if parsed_url.hostname in ('www.youtube.com', 'youtube.com'):
+        if parsed_url.path == '/watch':
+            qs = urlparse.parse_qs(parsed_url.query)
+            return qs.get('v', [None])[0]
+        if parsed_url.path.startswith('/embed/'):
+            return parsed_url.path.split('/')[2]
+        if parsed_url.path.startswith('/v/'):
+            return parsed_url.path.split('/')[2]
+    return None
+
+def get_cookie_file():
+    """
+    Returns the path to the cookie file if configured via ENV or local file.
+    """
+    # 檢查是否透過環境變數提供 cookies
+    if os.getenv('YOUTUBE_COOKIES'):
+        cookies_path = '/tmp/youtube_cookies.txt'
+        # 在 Windows 上可能是 /tmp 不存在，改放當前目錄
+        if not os.path.exists('/tmp'):
+            cookies_path = 'youtube_cookies.tmp'
+        
+        # 避免重複寫入，若已存在且內容一致（或簡單覆寫即可）
+        with open(cookies_path, 'w', encoding='utf-8') as f:
+            f.write(os.getenv('YOUTUBE_COOKIES').replace('\\n', '\n'))
+        return cookies_path
+    
+    # 檢查本地是否有 cookies.txt
+    if os.path.exists('cookies.txt'):
+        return 'cookies.txt'
+        
+    return None
+
 def get_video_metadata(url):
     """
-    Fetches video metadata using yt-dlp.
+    獲取 YouTube metadata，優先使用繞過驗證的 OEmbed 方案，失敗則回退 yt-dlp
     """
+    video_id = extract_video_id(url)
+    if not video_id:
+        raise Exception("無效的 YouTube 網址")
+    
+    # 策略 1: 使用 OEmbed API (不觸發 Bot 驗證)
+    try:
+        oembed_url = f"https://www.youtube.com/oembed?url={url}&format=json"
+        response = requests.get(oembed_url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                'id': video_id,
+                'title': data.get('title'),
+                'channel': data.get('author_name'),
+                'upload_date': None 
+            }
+    except Exception as e:
+        print(f"OEmbed API 發生錯誤: {e}，切換至備用方案 yt-dlp...")
+        
+    # 策略 2: 備案使用 yt-dlp
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
         'skip_download': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['web', 'default']
+            }
+        }
     }
+    
+    # 載入 cookies 繞過機器人驗證 (特別是在 Zeabur 這種機房環境)
+    cookie_file = get_cookie_file()
+    if cookie_file:
+        ydl_opts['cookiefile'] = cookie_file
+
     try:
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
